@@ -3,6 +3,7 @@ package mirodopf_Agent;
 
 import ch.idsia.mario.engine.LevelScene;
 import de.novatec.marioai.tools.MarioInput;
+import de.novatec.marioai.tools.MarioNtAgent;
 
 //Exercise 1.1
 public class Node {

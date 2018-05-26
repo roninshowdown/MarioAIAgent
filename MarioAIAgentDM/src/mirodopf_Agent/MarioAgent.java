@@ -22,7 +22,7 @@ public class MarioAgent extends MarioNtAgent {
 	@Override
 	public String getName() {
 	
-		return "Mario A* Template Agent";
+		return "GO GO Mario !";
 	}
 
 	@Override
@@ -53,7 +53,9 @@ public class MarioAgent extends MarioNtAgent {
 			
 			//pick best node from open list with lowest cost
 			actual=openSet.get(0);
-			for(Node next: openSet)	if(fMap.get(next)<fMap.get(actual)) actual=next;
+			for(Node next: openSet)	if(fMap.get(next)<fMap.get(actual)) {
+				actual=next;
+			}
 	
 			if((actual.getX()>=scene.getMarioX()+TARGET_OFFSET)||actual.getLevelScene().getMarioStatus()==STATUS.WIN) {
 				//setColor(Color.BLUE);
@@ -75,15 +77,14 @@ public class MarioAgent extends MarioNtAgent {
 				if(!openSet.contains(neighbor)) openSet.add(neighbor);
 				
 				//get costs till now
-				double tmpGScore=gMap.get(actual)+actual.getDistanceTo(neighbor);
-				
+				double tmpGScore=gMap.get(actual)+actual.getDistanceTo(neighbor); //+ getHeuristic(actual);
 				//check scores -> if path from actual to neighbor better than old way replace it
 				if(gMap.get(neighbor)!=null&&tmpGScore>gMap.get(neighbor)) continue; //check if old path is better
 				
 				//else set this way
 				neighbor.setParent(actual);
 				gMap.put(neighbor, tmpGScore);
-				fMap.put(neighbor, tmpGScore+getDistanceFromTo(neighbor.getX(), neighbor.getY(), (float)neighbor.getLevelScene().getLevelXExit()*16, 0));
+				fMap.put(neighbor, getHeuristic(neighbor)+tmpGScore+getDistanceFromTo(neighbor.getX(), neighbor.getY(), (float)neighbor.getLevelScene().getLevelXExit()*16, 0));
 			} //for each nextNodes
 		} //while
 		List<Node> tmp=reconstructPath(actual);
@@ -109,6 +110,7 @@ public class MarioAgent extends MarioNtAgent {
 		
 		MarioInput input;
 		
+
 		input=new MarioInput();
 		input.press(MarioKey.LEFT);
 		inputs.add(input);
@@ -127,6 +129,13 @@ public class MarioAgent extends MarioNtAgent {
 		input=new MarioInput();
 		input.press(MarioKey.RIGHT);
 		inputs.add(input);
+		
+		input=new MarioInput();
+		input.press(MarioKey.JUMP);
+		inputs.add(input);
+		
+		
+	
 		
 		//create more (useful) inputs and add them to the list
 		
@@ -161,15 +170,13 @@ public class MarioAgent extends MarioNtAgent {
 		return Math.sqrt(Math.pow(x2-x1, 2)+Math.pow(y2-y1, 2));
 	}
 	
-	@SuppressWarnings("unused")
 	private double getHeuristic(Node node) {
-		double result=0;
-		//add Points based on values from the node (use the LevelScene to get useful information)
-		return result;
+		if (node.getLevelScene().getMarioStatus() == STATUS.LOSE) return 100000;
+		if (node.getLevelScene().getTimesMarioHurt() > 0) return 100000;
+		return -1*node.getLevelScene().getScore();
 	}
 	
 	public static void main (String [] args) {
-		MarioAiRunner.run(new MarioAgent(), LevelConfig.HARD_ENEMY_TRAINING, 24, 4, true, true, true);
+		MarioAiRunner.run(new MarioAgent(), LevelConfig.LEVEL_6, 24, 4, true, true, true);
 	}
-
 }
