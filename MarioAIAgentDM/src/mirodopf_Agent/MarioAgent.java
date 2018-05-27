@@ -10,6 +10,8 @@ import ch.idsia.mario.engine.LevelScene;
 import ch.idsia.mario.engine.sprites.Mario.STATUS;
 import ch.idsia.mario.environments.Environment;
 import de.novatec.mario.engine.generalization.Coordinates;
+import de.novatec.mario.engine.generalization.Tile;
+import de.novatec.mario.engine.generalization.Tiles.TileType;
 import de.novatec.marioai.tools.LevelConfig;
 import de.novatec.marioai.tools.MarioAiRunner;
 import de.novatec.marioai.tools.MarioInput;
@@ -37,10 +39,13 @@ public class MarioAgent extends MarioNtAgent {
 		Map<Node,Double> gMap;
 		Map<Node,Double> fMap;
 		
+		List<Tile> interactiveBlocks;
+		
 			openSet=new ArrayList<>();
 			closedSet=new ArrayList<>();
 			gMap=new HashMap<>();
 			fMap=new HashMap<>();
+			interactiveBlocks = getInteractiveBlocksOnScreen();
 		
 		openSet.add(start);
 		gMap.put(start, 0.0); //cost for start is 0
@@ -53,7 +58,7 @@ public class MarioAgent extends MarioNtAgent {
 			
 			//pick best node from open list with lowest cost
 			actual=openSet.get(0);
-			for(Node next: openSet)	if(fMap.get(next)<fMap.get(actual)) {
+			for(Node next: openSet)	if(fMap.get(next)  + getHeuristic(actual) <fMap.get(actual)) {
 				actual=next;
 			}
 	
@@ -77,14 +82,14 @@ public class MarioAgent extends MarioNtAgent {
 				if(!openSet.contains(neighbor)) openSet.add(neighbor);
 				
 				//get costs till now
-				double tmpGScore=gMap.get(actual)+actual.getDistanceTo(neighbor); //+ getHeuristic(actual);
+				double tmpGScore=gMap.get(actual)+actual.getDistanceTo(neighbor);
 				//check scores -> if path from actual to neighbor better than old way replace it
 				if(gMap.get(neighbor)!=null&&tmpGScore>gMap.get(neighbor)) continue; //check if old path is better
 				
 				//else set this way
 				neighbor.setParent(actual);
 				gMap.put(neighbor, tmpGScore);
-				fMap.put(neighbor, getHeuristic(neighbor)+tmpGScore+getDistanceFromTo(neighbor.getX(), neighbor.getY(), (float)neighbor.getLevelScene().getLevelXExit()*16, 0));
+				fMap.put(neighbor,tmpGScore+getDistanceFromTo(neighbor.getX(), neighbor.getY(), (float)neighbor.getLevelScene().getLevelXExit()*16, 0));
 			} //for each nextNodes
 		} //while
 		List<Node> tmp=reconstructPath(actual);
@@ -159,6 +164,10 @@ public class MarioAgent extends MarioNtAgent {
 		
 		for(MarioInput next: inputs) {
 			LevelScene clone=tick(actual,next);
+			if(clone.getMarioStatus() == STATUS.LOSE || clone.getTimesMarioHurt() > 0) {
+				System.out.println("Hurt");
+				continue;
+			}
 			nodes.add(new Node(clone,next));
 		}
 	
@@ -171,12 +180,27 @@ public class MarioAgent extends MarioNtAgent {
 	}
 	
 	private double getHeuristic(Node node) {
-		if (node.getLevelScene().getMarioStatus() == STATUS.LOSE) return 100000;
-		if (node.getLevelScene().getTimesMarioHurt() > 0) return 100000;
+		/*
+		for (Tile t : getInteractiveBlocksOnScreen()) {
+			if (t.getType() == TileType.COIN) {
+				if (Math.abs(node.getX()-t.getCoords().getX())< 1 && Math.abs(node.getY()-t.getCoords().getY())< 1) {
+					System.out.println("COIN!!!");
+					return - 10000;
+				}
+			}
+		}
+		*/
+		if (node.getLevelScene().getMarioStatus() == STATUS.LOSE) {
+			return 100000;
+		}
+		if (node.getLevelScene().getTimesMarioHurt() > 0) {
+			System.out.println("Hurt");
+			return 100000;
+		}
 		return -1*node.getLevelScene().getScore();
 	}
 	
 	public static void main (String [] args) {
-		MarioAiRunner.run(new MarioAgent(), LevelConfig.LEVEL_6, 24, 4, true, true, true);
+		MarioAiRunner.run(new MarioAgent(), LevelConfig.GOOD_LUCK, 24, 4, true, true, true);
 	}
 }
